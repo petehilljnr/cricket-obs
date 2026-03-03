@@ -1,16 +1,36 @@
-# React + Vite
+# Cricket OBS Scorer (React app)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This app is configured to connect directly to Supabase using `@supabase/supabase-js`.
 
-Currently, two official plugins are available:
+## 1) Install dependencies
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+npm install
+```
 
-## React Compiler
+## 2) Configure Supabase environment
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Copy `.env.example` to `.env` and set your project values:
 
-## Expanding the ESLint configuration
+```bash
+VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+You can find these in Supabase under **Project Settings > API**.
+
+## 3) Ensure DB schema is applied
+
+Run `supabase/db-scripts/full-script.sql` in the SQL editor for your Supabase project.
+
+## 4) Run the app
+
+```bash
+npm run dev
+```
+
+The current UI reads/writes the `teams` table to verify your Supabase connection.
+
+## Notes on permissions
+
+If Row Level Security is enabled, make sure your anon role has policies that allow the operations you need (currently `select` and `insert` on `teams`).

@@ -589,31 +589,84 @@ for each row execute function innings_default_max_overs();
 
 
 -- ==========================================================
--- OPTIONAL: RLS PLACEHOLDER (READ-ONLY BY DEFAULT)
--- Supabase projects often enable RLS; these are templates.
--- Uncomment and adjust when you decide auth rules.
+-- RLS + API ACCESS MODEL
+-- anon: view-only (SELECT on views)
+-- authenticated: table access via RLS policies
+-- service_role: unaffected (bypasses RLS)
 -- ==========================================================
 
--- alter table teams enable row level security;
--- alter table players enable row level security;
--- alter table matches enable row level security;
--- alter table match_rules enable row level security;
--- alter table match_teams enable row level security;
--- alter table match_players enable row level security;
--- alter table innings enable row level security;
--- alter table deliveries enable row level security;
--- alter table innings_events enable row level security;
--- alter table live_innings_state enable row level security;
+-- schema access
+grant usage on schema public to anon, authenticated;
+revoke create on schema public from anon, authenticated;
 
--- Example public read policy (tighten as needed):
--- create policy "public_read_matches"
--- on matches for select
--- using (true);
+-- lock down anon on base objects
+revoke all on all tables in schema public from anon;
+revoke all on all sequences in schema public from anon;
+revoke all on all routines in schema public from anon;
 
--- Example scorer write policy (requires you to implement a scorer check):
--- create policy "scorer_write_deliveries"
--- on deliveries for insert
--- with check (auth.uid() is not null);
+-- authenticated gets table privileges, RLS still applies
+grant select, insert, update, delete on all tables in schema public to authenticated;
+grant usage, select on all sequences in schema public to authenticated;
+
+-- anon can only read views
+do $$
+declare
+  v record;
+begin
+  for v in
+    select table_name
+    from information_schema.views
+    where table_schema = 'public'
+  loop
+    execute format('grant select on table public.%I to anon', v.table_name);
+  end loop;
+end $$;
+
+-- defaults for future objects
+alter default privileges in schema public revoke all on tables from anon;
+alter default privileges in schema public revoke all on sequences from anon;
+alter default privileges in schema public grant select, insert, update, delete on tables to authenticated;
+alter default privileges in schema public grant usage, select on sequences to authenticated;
+
+-- enable RLS and create authenticated-only policies on all public tables
+do $$
+declare
+  t record;
+begin
+  for t in
+    select tablename
+    from pg_tables
+    where schemaname = 'public'
+  loop
+    execute format('alter table public.%I enable row level security', t.tablename);
+
+    execute format('drop policy if exists %I on public.%I', t.tablename || '_auth_select', t.tablename);
+    execute format('drop policy if exists %I on public.%I', t.tablename || '_auth_insert', t.tablename);
+    execute format('drop policy if exists %I on public.%I', t.tablename || '_auth_update', t.tablename);
+    execute format('drop policy if exists %I on public.%I', t.tablename || '_auth_delete', t.tablename);
+
+    execute format(
+      'create policy %I on public.%I for select to authenticated using (true)',
+      t.tablename || '_auth_select',
+      t.tablename
+    );
+    execute format(
+      'create policy %I on public.%I for insert to authenticated with check (true)',
+      t.tablename || '_auth_insert',
+      t.tablename
+    );
+    execute format(
+      'create policy %I on public.%I for update to authenticated using (true) with check (true)',
+      t.tablename || '_auth_update',
+      t.tablename
+    );
+    execute format(
+      'create policy %I on public.%I for delete to authenticated using (true)',
+      t.tablename || '_auth_delete',
+      t.tablename
+    );
+  end loop;
+end $$;
 
 -- ==========================================================
 -- END
