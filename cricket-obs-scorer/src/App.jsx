@@ -1,134 +1,97 @@
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useEffect, useState } from 'react'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import DashboardPage from './pages/DashboardPage'
+import FixturesListPage from './pages/FixturesListPage'
+import LoginPage from './pages/LoginPage'
 import { hasSupabaseConfig, supabase } from './lib/supabaseClient'
-import './App.css'
 
-function App() {
-  const [teams, setTeams] = useState([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [form, setForm] = useState({ name: '', shortName: '' })
-
-  const loadTeams = async () => {
-    if (!supabase) {
-      setError('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env file.')
-      return
-    }
-
-    setIsLoading(true)
-    setError('')
-
-    const { data, error: loadError } = await supabase
-      .from('teams')
-      .select('id, name, short_name, created_at')
-      .order('created_at', { ascending: false })
-      .limit(20)
-
-    if (loadError) {
-      setError(loadError.message)
-      setIsLoading(false)
-      return
-    }
-
-    setTeams(data ?? [])
-    setIsLoading(false)
+function ProtectedRoute({ session, children }) {
+  if (!session) {
+    return <Navigate to="/login" replace />
   }
 
+  return children
+}
+
+function App() {
+  const [session, setSession] = useState(null)
+  const [isLoadingSession, setIsLoadingSession] = useState(hasSupabaseConfig)
+
   useEffect(() => {
-    if (hasSupabaseConfig) {
-      loadTeams()
+    if (!supabase) {
+      setIsLoadingSession(false)
+      return
+    }
+
+    const loadSession = async () => {
+      const { data } = await supabase.auth.getSession()
+      setSession(data.session ?? null)
+      setIsLoadingSession(false)
+    }
+
+    loadSession()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession ?? null)
+    })
+
+    return () => {
+      subscription.unsubscribe()
     }
   }, [])
 
-  const handleSubmit = async (event) => {
-    event.preventDefault()
-    if (!supabase || !form.name.trim()) {
-      return
-    }
+  if (!hasSupabaseConfig) {
+    return (
+      <main className="mx-auto min-h-screen w-full max-w-3xl p-4 md:p-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Supabase setup required</CardTitle>
+            <CardDescription>Login is disabled until Supabase env variables are configured.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="rounded-md border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+              Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env file and restart the dev server.
+            </p>
+          </CardContent>
+        </Card>
+      </main>
+    )
+  }
 
-    setIsSaving(true)
-    setError('')
-
-    const payload = {
-      name: form.name.trim(),
-      short_name: form.shortName.trim() || null,
-    }
-
-    const { error: insertError } = await supabase.from('teams').insert(payload)
-
-    if (insertError) {
-      setError(insertError.message)
-      setIsSaving(false)
-      return
-    }
-
-    setForm({ name: '', shortName: '' })
-    setIsSaving(false)
-    loadTeams()
+  if (isLoadingSession) {
+    return (
+      <main className="mx-auto flex min-h-screen w-full max-w-3xl items-center justify-center p-4 md:p-8">
+        <p className="text-sm text-muted-foreground">Checking session...</p>
+      </main>
+    )
   }
 
   return (
-    <main className="page">
-      <section className="panel">
-        <h1>Cricket OBS Scorer</h1>
-        <p className="subtitle">Supabase connection and team bootstrap</p>
-
-        {!hasSupabaseConfig && (
-          <p className="alert">
-            Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env to connect.
-          </p>
-        )}
-
-        <form className="team-form" onSubmit={handleSubmit}>
-          <label>
-            Team name
-            <input
-              value={form.name}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, name: event.target.value }))
-              }
-              placeholder="Sydney Cricket Club"
-              required
-            />
-          </label>
-
-          <label>
-            Short name
-            <input
-              value={form.shortName}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, shortName: event.target.value }))
-              }
-              placeholder="SCC"
-              maxLength={12}
-            />
-          </label>
-
-          <button type="submit" disabled={!hasSupabaseConfig || isSaving}>
-            {isSaving ? 'Saving...' : 'Add team'}
-          </button>
-        </form>
-
-        <div className="teams-header">
-          <h2>Recent teams</h2>
-          <button type="button" onClick={loadTeams} disabled={!hasSupabaseConfig || isLoading}>
-            {isLoading ? 'Refreshing...' : 'Refresh'}
-          </button>
-        </div>
-
-        {error && <p className="alert">{error}</p>}
-
-        <ul className="teams-list">
-          {teams.length === 0 && <li>No teams found yet.</li>}
-          {teams.map((team) => (
-            <li key={team.id}>
-              <span>{team.name}</span>
-              <strong>{team.short_name || '—'}</strong>
-            </li>
-          ))}
-        </ul>
-      </section>
-    </main>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<LoginPage session={session} />} />
+        <Route
+          path="/"
+          element={(
+            <ProtectedRoute session={session}>
+              <DashboardPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/fixtures"
+          element={(
+            <ProtectedRoute session={session}>
+              <FixturesListPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route path="*" element={<Navigate to={session ? '/' : '/login'} replace />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
