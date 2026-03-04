@@ -1,8 +1,33 @@
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabaseClient'
 
+const THEME_STORAGE_KEY = 'cricket-obs-theme'
+
 function AppLayout() {
+  const [theme, setTheme] = useState('light')
+
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY)
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const initialTheme = savedTheme === 'dark' || savedTheme === 'light'
+      ? savedTheme
+      : (prefersDark ? 'dark' : 'light')
+
+    setTheme(initialTheme)
+  }, [])
+
+  useEffect(() => {
+    const root = document.documentElement
+    root.classList.toggle('dark', theme === 'dark')
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme)
+  }, [theme])
+
+  const toggleTheme = () => {
+    setTheme((current) => (current === 'dark' ? 'light' : 'dark'))
+  }
+
   const handleSignOut = async () => {
     if (!supabase) {
       return
@@ -62,6 +87,9 @@ function AppLayout() {
             >
               Players
             </NavLink>
+            <Button type="button" variant="outline" size="sm" onClick={toggleTheme}>
+              {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            </Button>
             <Button type="button" variant="outline" size="sm" onClick={handleSignOut}>
               Sign out
             </Button>

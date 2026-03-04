@@ -77,3 +77,11 @@ body {
 	font-family: Inter, Segoe UI, Arial, sans-serif;
 	@apply bg-background text-foreground;
 }
+
+select {
+	@apply bg-background text-foreground;
+}
+
+option {
+	@apply bg-background text-foreground;
+}

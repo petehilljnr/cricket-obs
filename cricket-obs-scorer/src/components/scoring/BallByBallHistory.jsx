@@ -40,17 +40,29 @@ function BallByBallHistory({
             <ul className="space-y-1.5">
               {paginatedRecentDeliveries.map((delivery) => {
                 const isDeleting = isDeletingDeliveryId === delivery.id
+                const totalRuns = Number(delivery.runs_off_bat || 0) + Number(delivery.extras_runs || 0)
+                const deliveryCardClass = totalRuns === 4
+                  ? 'bg-green-900 text-white border-green-800'
+                  : totalRuns === 6
+                    ? 'bg-purple-900 text-white border-purple-800'
+                    : ''
+                const actionButtonClass = deliveryCardClass
+                  ? 'bg-white/90 text-black border-white/70 hover:bg-white'
+                  : ''
+                const deleteButtonClass = deliveryCardClass
+                  ? 'bg-white/90 text-red-700 border-white/70 hover:bg-white hover:text-red-800'
+                  : 'text-red-600 hover:text-red-700'
 
                 return (
-                  <li key={delivery.id} className="rounded-md border p-2">
+                  <li key={delivery.id} className={`rounded-md border p-2 ${deliveryCardClass}`}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="truncate text-xs text-muted-foreground">
+                        <p className={`truncate text-xs ${deliveryCardClass ? 'text-white/80' : 'text-muted-foreground'}`}>
                           {delivery.over_no}.{delivery.ball_no} · {playerLabel(delivery.striker)} vs {playerLabel(delivery.bowler)}
                         </p>
                         <p className="truncate text-sm font-medium">{deliveryEventLabel(delivery)}</p>
                         {delivery.commentary && (
-                          <p className="truncate text-xs text-muted-foreground">{delivery.commentary}</p>
+                          <p className={`truncate text-xs ${deliveryCardClass ? 'text-white/80' : 'text-muted-foreground'}`}>{delivery.commentary}</p>
                         )}
                       </div>
                       <div className="flex gap-1">
@@ -58,7 +70,7 @@ function BallByBallHistory({
                           type="button"
                           size="sm"
                           variant="secondary"
-                          className="h-8 w-8 p-0"
+                          className={`h-8 w-8 p-0 ${actionButtonClass}`}
                           onClick={() => startEditDelivery(delivery)}
                           title="Edit delivery"
                         >
@@ -68,7 +80,7 @@ function BallByBallHistory({
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="h-8 w-8 p-0"
+                          className={`h-8 w-8 p-0 ${deleteButtonClass}`}
                           onClick={() => deleteDelivery(delivery.id)}
                           disabled={isDeleting}
                           title="Delete delivery"
