@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -17,7 +16,6 @@ function DashboardPage() {
   const [teams, setTeams] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSavingTeam, setIsSavingTeam] = useState(false)
-  const [isSigningOut, setIsSigningOut] = useState(false)
   const [isCreatingMatch, setIsCreatingMatch] = useState(false)
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
@@ -355,34 +353,12 @@ function DashboardPage() {
     setIsCreatingMatch(false)
   }
 
-  const handleSignOut = async () => {
-    if (!supabase) {
-      return
-    }
-
-    setIsSigningOut(true)
-    await supabase.auth.signOut()
-    setIsSigningOut(false)
-  }
-
   return (
-    <main className="mx-auto min-h-screen w-full max-w-5xl p-4 md:p-8">
+    <section>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <CardTitle>Cricket OBS Scorer</CardTitle>
-              <CardDescription>Create fixtures and manage team players.</CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link to="/fixtures">
-                <Button type="button" variant="secondary">View fixtures</Button>
-              </Link>
-              <Button variant="outline" onClick={handleSignOut} disabled={isSigningOut}>
-                {isSigningOut ? 'Signing out...' : 'Sign out'}
-              </Button>
-            </div>
-          </div>
+          <CardTitle>Create Fixture</CardTitle>
+          <CardDescription>Set up match details, teams, and players.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
           {error && (
@@ -807,7 +783,7 @@ function DashboardPage() {
           </section>
         </CardContent>
       </Card>
-    </main>
+    </section>
   )
 }
 

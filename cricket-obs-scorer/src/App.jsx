@@ -1,9 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import AppLayout from './components/AppLayout'
 import DashboardPage from './pages/DashboardPage'
 import FixturesListPage from './pages/FixturesListPage'
 import LoginPage from './pages/LoginPage'
+import PlayersPage from './pages/PlayersPage'
+import ScoringPage from './pages/ScoringPage'
+import TeamsPage from './pages/TeamsPage'
 import { hasSupabaseConfig, supabase } from './lib/supabaseClient'
 
 function ProtectedRoute({ session, children }) {
@@ -74,21 +78,18 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage session={session} />} />
         <Route
-          path="/"
           element={(
             <ProtectedRoute session={session}>
-              <DashboardPage />
+              <AppLayout />
             </ProtectedRoute>
           )}
-        />
-        <Route
-          path="/fixtures"
-          element={(
-            <ProtectedRoute session={session}>
-              <FixturesListPage />
-            </ProtectedRoute>
-          )}
-        />
+        >
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/fixtures" element={<FixturesListPage />} />
+          <Route path="/scoring" element={<ScoringPage />} />
+          <Route path="/players" element={<PlayersPage />} />
+          <Route path="/teams" element={<TeamsPage />} />
+        </Route>
         <Route path="*" element={<Navigate to={session ? '/' : '/login'} replace />} />
       </Routes>
     </BrowserRouter>
